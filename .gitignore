@@ -45,8 +45,7 @@ htmlcov/
 # Git
 .git/
 
-# Reportes (mantener estructura pero ignorar archivos generados)
-reports/*.html
+# Reportes (mantener reporte principal pero ignorar screenshots)
 reports/screenshots/
 
 # Variables de Entorno
