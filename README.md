@@ -1,6 +1,6 @@
 # Proyecto SauceDemo - pruebas
 
-README breve y sencilla, para que parezca mía.
+README
 
 Qué hay:
 - Tests de login, navegación y carrito
