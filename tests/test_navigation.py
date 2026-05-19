@@ -7,7 +7,7 @@ import pytest
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from utils.saucedemo_pages import LoginPage, InventoryPage
+# Reemplazado POM por selectores inline: ya no se importa utils.saucedemo_pages
 
 
 class TestNavigation:
@@ -25,15 +25,24 @@ class TestNavigation:
         Método auxiliar para realizar login y navegar al inventario
         """
         driver.get(base_url)
-        login_page = LoginPage(driver)
-        login_page.login(valid_credentials["username"], valid_credentials["password"])
-        
+        wait = WebDriverWait(driver, 10)
+
+        username_field = wait.until(EC.visibility_of_element_located((By.ID, "user-name")))
+        username_field.clear()
+        username_field.send_keys(valid_credentials["username"])
+
+        password_field = wait.until(EC.visibility_of_element_located((By.ID, "password")))
+        password_field.clear()
+        password_field.send_keys(valid_credentials["password"])
+
+        login_button = wait.until(EC.element_to_be_clickable((By.ID, "login-button")))
+        login_button.click()
+
         # Esperar a que se cargue la página de inventario
-        inventory_page = InventoryPage(driver)
-        assert inventory_page.is_inventory_page_loaded(), "La página de inventario no se cargó"
+        wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "inventory_item")))
         print("✅ Login completado - Página de inventario cargada")
-        
-        return inventory_page
+
+        return driver
     
     def test_inventario_page_loaded(self, driver, base_url, valid_credentials):
         """
@@ -46,8 +55,8 @@ class TestNavigation:
         3. Validar que el título de la página sea "Products"
         """
         # Pasos 1-2: Realizar login
-        inventory_page = self._login_and_go_to_inventory(driver, base_url, valid_credentials)
-        
+        driver = self._login_and_go_to_inventory(driver, base_url, valid_credentials)
+
         # Paso 3: Validar el título de la página
         page_title = driver.find_element(By.CLASS_NAME, "title").text
         assert page_title == "Products", f"El título esperado es 'Products' pero se encontró '{page_title}'"
@@ -65,17 +74,18 @@ class TestNavigation:
         4. Validar que cada producto tiene nombre y precio
         """
         # Pasos 1: Realizar login
-        inventory_page = self._login_and_go_to_inventory(driver, base_url, valid_credentials)
-        
+        driver = self._login_and_go_to_inventory(driver, base_url, valid_credentials)
+
         # Paso 2: Verificar cantidad de productos
-        items_count = inventory_page.get_inventory_items_count()
+        items = driver.find_elements(By.CLASS_NAME, "inventory_item")
+        items_count = len(items)
         assert items_count >= 1, "No hay productos visibles en el catálogo"
         print(f"✅ Se encontraron {items_count} productos en el catálogo")
-        
+
         # Paso 3: Verificar que hay múltiples productos
         assert items_count >= 6, f"Se esperaban al menos 6 productos, se encontraron {items_count}"
         print(f"✅ El catálogo contiene el número esperado de productos: {items_count}")
-        
+
         # Paso 4: Validar que cada producto tiene nombre y precio
         items = driver.find_elements(By.CLASS_NAME, "inventory_item")
         for idx, item in enumerate(items, 1):
@@ -100,8 +110,8 @@ class TestNavigation:
         4. Verificar presencia del selector de ordenamiento
         """
         # Paso 1: Realizar login
-        inventory_page = self._login_and_go_to_inventory(driver, base_url, valid_credentials)
-        
+        driver = self._login_and_go_to_inventory(driver, base_url, valid_credentials)
+
         # Paso 2: Verificar menú hamburguesa
         burger_menu = driver.find_element(By.ID, "react-burger-menu-btn")
         assert burger_menu.is_displayed(), "El menú hamburguesa no está visible"
@@ -131,8 +141,8 @@ class TestNavigation:
         4. Validar que la página de detalle contiene información del producto
         """
         # Pasos 1: Realizar login
-        inventory_page = self._login_and_go_to_inventory(driver, base_url, valid_credentials)
-        
+        driver = self._login_and_go_to_inventory(driver, base_url, valid_credentials)
+
         # Paso 2: Hacer clic en el nombre del primer producto
         first_product = driver.find_element(By.CLASS_NAME, "inventory_item_name")
         product_name = first_product.text
@@ -155,5 +165,6 @@ class TestNavigation:
         
         # Volver a la página de inventario
         back_button.click()
-        inventory_page.is_inventory_page_loaded()
+        wait = WebDriverWait(driver, 10)
+        wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "inventory_item")))
         print("✅ Vuelto a la página de inventario")

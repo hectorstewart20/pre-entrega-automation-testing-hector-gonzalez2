@@ -3,8 +3,15 @@ test_login.py - Pruebas de autenticación en SauceDemo
 Casos de prueba para validar el login con credenciales válidas e inválidas.
 """
 
+import sys
+import os
+# Asegurar que la carpeta raíz del proyecto esté en sys.path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import pytest
-from utils.saucedemo_pages import LoginPage, InventoryPage
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 
 class TestLogin:
@@ -26,18 +33,27 @@ class TestLogin:
         driver.get(base_url)
         print("✅ Navegado a la página de login")
         
-        # Paso 2-3: Realizar login
-        login_page = LoginPage(driver)
-        login_page.login(valid_credentials["username"], valid_credentials["password"])
+        # Paso 2-3: Realizar login usando selectores directos
+        wait = WebDriverWait(driver, 10)
+        username_field = wait.until(EC.visibility_of_element_located((By.ID, "user-name")))
+        username_field.clear()
+        username_field.send_keys(valid_credentials["username"])
+
+        password_field = wait.until(EC.visibility_of_element_located((By.ID, "password")))
+        password_field.clear()
+        password_field.send_keys(valid_credentials["password"])
+
+        login_button = wait.until(EC.element_to_be_clickable((By.ID, "login-button")))
+        login_button.click()
         print("✅ Credenciales ingresadas y botón de login presionado")
-        
+
         # Paso 4: Validar que estamos en la página de inventario
-        inventory_page = InventoryPage(driver)
-        assert inventory_page.is_inventory_page_loaded(), "La página de inventario no se cargó"
+        wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "inventory_item")))
         print("✅ Login exitoso - Página de inventario cargada")
-        
+
         # Validación adicional: verificar que hay productos visibles
-        items_count = inventory_page.get_inventory_items_count()
+        items = driver.find_elements(By.CLASS_NAME, "inventory_item")
+        items_count = len(items)
         assert items_count > 0, "No se encontraron productos en el inventario"
         print(f"✅ Se encontraron {items_count} productos en la página")
     
@@ -57,16 +73,25 @@ class TestLogin:
         print("✅ Navegado a la página de login")
         
         # Paso 2-3: Intentar login con credenciales inválidas
-        login_page = LoginPage(driver)
-        login_page.login("usuario_invalido", "contraseña_invalida")
+        wait = WebDriverWait(driver, 10)
+        username_field = wait.until(EC.visibility_of_element_located((By.ID, "user-name")))
+        username_field.clear()
+        username_field.send_keys("usuario_invalido")
+
+        password_field = wait.until(EC.visibility_of_element_located((By.ID, "password")))
+        password_field.clear()
+        password_field.send_keys("contraseña_invalida")
+
+        login_button = wait.until(EC.element_to_be_clickable((By.ID, "login-button")))
+        login_button.click()
         print("✅ Intentado login con credenciales inválidas")
-        
+
         # Paso 4: Verificar que aparece un mensaje de error
         try:
-            error_message = driver.find_element(*LoginPage.ERROR_MESSAGE)
+            error_message = wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "error-message-container")))
             assert error_message.is_displayed(), "El mensaje de error no se muestra"
             print(f"✅ Mensaje de error mostrado: {error_message.text}")
-        except:
+        except Exception:
             pytest.fail("No se encontró el mensaje de error")
     
     def test_login_sin_ingresar_usuario(self, driver, base_url):
@@ -85,16 +110,20 @@ class TestLogin:
         print("✅ Navegado a la página de login")
         
         # Paso 2-3: Intentar login sin usuario
-        login_page = LoginPage(driver)
-        login_page.enter_password("secret_sauce")
-        login_page.click_login()
+        wait = WebDriverWait(driver, 10)
+        password_field = wait.until(EC.visibility_of_element_located((By.ID, "password")))
+        password_field.clear()
+        password_field.send_keys("secret_sauce")
+
+        login_button = wait.until(EC.element_to_be_clickable((By.ID, "login-button")))
+        login_button.click()
         print("✅ Intentado login sin ingresar usuario")
-        
+
         # Paso 4: Verificar error
         try:
-            error_message = driver.find_element(*LoginPage.ERROR_MESSAGE)
+            error_message = wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "error-message-container")))
             assert error_message.is_displayed(), "El mensaje de error no se muestra"
             assert "username" in error_message.text.lower(), "El error no menciona el usuario"
             print(f"✅ Error validado: {error_message.text}")
-        except:
+        except Exception:
             pytest.fail("No se encontró el mensaje de error para usuario requerido")
